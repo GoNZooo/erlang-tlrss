@@ -4,7 +4,11 @@
 
 -export([start_link/1,
          init/1,
-         handle_call/3]).
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
 
 -behaviour(gen_server).
 -include("records.hrl").
@@ -34,3 +38,15 @@ wanted_item(Item, Filters) ->
                           _ -> false
                       end
               end, Filters).
+
+handle_cast(_Msg, N) ->
+    {noreply, N}.
+
+handle_info(_Info, N) ->
+    {noreply, N}.
+
+terminate(_Reason, _N) ->
+    ok.
+
+code_change(_OldVsn, N, _Extra) ->
+    {ok, N}.

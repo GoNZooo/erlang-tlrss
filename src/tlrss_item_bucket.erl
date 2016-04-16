@@ -4,7 +4,11 @@
 
 -export([start_link/0,
          init/1,
-         handle_call/3]).
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
 
 -behaviour(gen_server).
 -include("records.hrl").
@@ -37,3 +41,15 @@ add_items_to_map(Items, Map) ->
 
 item_is_new(Item, Items) ->
     not maps:is_key(Item#item.name, Items).
+
+terminate(_Reason, _N) ->
+    ok.
+
+handle_cast(_Msg, N) ->
+    {noreply, N}.
+
+handle_info(_Info, N) ->
+    {noreply, N}.
+
+code_change(_OldVsn, N, _Extra) ->
+    {ok, N}.
