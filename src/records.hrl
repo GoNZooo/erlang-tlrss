@@ -1,5 +1,5 @@
--record(item, {id = <<>>,
+-record(item, {name = <<>>,
+               id = <<>>,
                download_link = <<>>,
-               name = <<>>,
                date_uploaded = <<>>,
                category = <<>>}).
