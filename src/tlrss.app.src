@@ -1,0 +1,20 @@
+{application, tlrss,
+ [{description, "An autodownloader for torrents from TorrentLeech"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {tlrss_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    inets,
+    xmerl,
+    feeder,
+    jsx
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.
