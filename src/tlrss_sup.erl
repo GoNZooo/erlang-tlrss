@@ -35,10 +35,11 @@ init([]) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
-% 
+                                                % 
 children() ->
     {ok, Feeds} = application:get_env(tlrss, feeds),
     {ok, Filters} = application:get_env(tlrss, filters),
-    {ok, DownloadDir} = application:get_env(tlrss, download_dir),
     [#{id => tlrss_item_bucket,
-       start => {tlrss_item_bucket, start_link, []}}].
+       start => {tlrss_item_bucket, start_link, []}},
+     #{id => tlrss_item_filter,
+       start => {tlrss_item_filter, start_link, [Filters]}}].
