@@ -1,11 +1,12 @@
 -module(tlrss_item_bucket).
--export([start_link/0,
-         init/1,
-         handle_call/3,
-         add/1,
+-export([add/1,
          items/0]).
 
--behaviour(supervisor).
+-export([start_link/0,
+         init/1,
+         handle_call/3]).
+
+-behaviour(gen_server).
 -include("records.hrl").
 
 start_link() ->
@@ -20,17 +21,14 @@ items() ->
 % Internals
 
 init([]) ->
-    {ok, maps:new()};
-init(Accounts) ->
-    {ok, Accounts}.
-
+    {ok, maps:new()}.
 
 handle_call({add, AddedItems}, _From, OldItems) ->
     NewItems = lists:filter(fun(I) -> item_is_new(I, OldItems) end, AddedItems),
     CombinedItems = add_items_to_map(NewItems, OldItems),
-    {reply, NewItems, CombinedItems};
+    {reply, {new_items, NewItems}, CombinedItems};
 handle_call(items, _From, Items) ->
-    {reply, Items, Items}.
+    {reply, {items, Items}, Items}.
 
 add_items_to_map(Items, Map) ->
     NewItems = lists:map(fun(I) -> {I#item.name, I} end, Items),
