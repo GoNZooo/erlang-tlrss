@@ -23,7 +23,11 @@ filters() ->
     gen_server:call(?MODULE, filters).
 
 init(Filters) ->
-    {ok, Filters}.
+    Compiled = lists:map(fun({F, Opts}) ->
+                                 {ok, Regex} = re:compile(F, Opts),
+                                 Regex
+                         end, Filters),
+    {ok, Compiled}.
 
 handle_call({filter, Items}, _From, Filters) ->
     Filtered = lists:filter(fun(I) -> wanted_item(I, Filters) end, Items),
@@ -34,7 +38,7 @@ handle_call(filters, _From, Filters) ->
 wanted_item(Item, Filters) ->
     lists:any(fun(Regex) ->
                       case re:run(Item#item.name, Regex) of
-                          {ok, _} -> true;
+                          {match, _} -> true;
                           _ -> false
                       end
               end, Filters).

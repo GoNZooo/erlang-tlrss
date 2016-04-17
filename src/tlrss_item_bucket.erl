@@ -42,14 +42,14 @@ add_items_to_map(Items, Map) ->
 item_is_new(Item, Items) ->
     not maps:is_key(Item#item.name, Items).
 
-terminate(_Reason, _N) ->
-    ok.
-
 handle_cast(_Msg, N) ->
     {noreply, N}.
 
 handle_info(_Info, N) ->
     {noreply, N}.
+
+terminate(_Reason, _N) ->
+    ok.
 
 code_change(_OldVsn, N, _Extra) ->
     {ok, N}.
