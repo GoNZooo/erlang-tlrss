@@ -26,6 +26,7 @@ add(Feed) ->
 
 init([Feeds, Sleeptime]) ->
     FeedMap = start_feeds(Feeds, Sleeptime),
+
     {ok, FeedMap}.
 
 start_feeds(Feeds, Sleeptime) ->
@@ -44,6 +45,7 @@ handle_call({remove, Feed}, _From, Feeds) ->
     case Feeds of
         #{Feed := Pid} ->
             tlrss_looper_supervisor:terminate_child(Pid),
+
             {reply, {ok, {removed, Feed}}, maps:remove(Feed, Feeds)};
         _ ->
             {error, incorrect_feed}
@@ -52,6 +54,7 @@ handle_call({remove, Feed}, _From, Feeds) ->
 handle_cast({add, Feed}, #{sleeptime := Sleeptime} = Feeds) ->
     {ok, pid} = tlrss_looper_supervisor:start_child(Feed, Sleeptime),
     NewFeeds = Feeds#{Feed => pid},
+
     {noreply, NewFeeds};
 handle_cast(_Msg, N) ->
     {noreply, N}.

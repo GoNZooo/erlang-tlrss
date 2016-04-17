@@ -36,6 +36,7 @@ get_torrent_data([I | Is], Output) ->
     UrlComponents = re:split(Url, "/"),
     FilenameBinary = lists:last(UrlComponents),
     FilenameString = binary:bin_to_list(FilenameBinary),
+
     Data = tlrss_downloader:download_wait(torrent, Url),
     get_torrent_data(Is, [{FilenameString, Data} | Output]).
 

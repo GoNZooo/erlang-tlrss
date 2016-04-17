@@ -30,6 +30,7 @@ start_link() ->
 init([]) ->
     SupFlags = #{},
     Children = children(),
+
     {ok, {SupFlags, Children}}.
 
 %%====================================================================
@@ -40,7 +41,9 @@ children() ->
     {ok, Feeds} = application:get_env(tlrss, feeds),
     {ok, Sleeptime} = application:get_env(tlrss, sleeptime),
     {ok, Filters} = application:get_env(tlrss, filters),
-    [#{id => tlrss_download_supervisor,
+
+    [
+     #{id => tlrss_download_supervisor,
        start => {tlrss_download_supervisor, start_link, []}},
      #{id => tlrss_item_bucket,
        start => {tlrss_item_bucket, start_link, []}},
