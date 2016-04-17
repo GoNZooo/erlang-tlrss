@@ -4,6 +4,8 @@
 
 -include("records.hrl").
 
+-compile([{parse_transform, lager_transform}]).
+
 -export([start_link/2,
          ensure_slash/1]).
 
@@ -39,7 +41,7 @@ write_torrents(_, []) ->
 write_torrents(DownloadDir, [{Filename, Data} | Ts]) ->
     DownloadPath = DownloadDir ++ Filename,
     file:write_file(DownloadPath, Data, [write, binary]),
-    io:format("Downloading: ~p~n", [Filename]),
+    lager:info("Downloading: ~p~n", [Filename]),
     write_torrents(DownloadDir, Ts).
 
 
