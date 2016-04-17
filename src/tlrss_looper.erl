@@ -15,11 +15,14 @@ start_link(Feed, Sleeptime) ->
 loop(Feed, Sleeptime) ->
     {ok, Dir} = application:get_env(tlrss, download_dir),
     DownloadDir = ensure_slash(Dir),
+
     Items = tlrss_downloader:download_wait(feed, Feed),
     {new_items, NewItems} = tlrss_item_bucket:add(Items),
     {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems),
+
     TorrentData = get_torrent_data(FilteredItems), 
     write_torrents(DownloadDir, TorrentData),
+
     timer:sleep(Sleeptime),
     loop(Feed, Sleeptime).
 

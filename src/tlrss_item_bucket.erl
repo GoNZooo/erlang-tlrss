@@ -30,8 +30,10 @@ init([]) ->
 handle_call({add, AddedItems}, _From, OldItems) ->
     NewItems = lists:filter(fun(I) -> item_is_new(I, OldItems) end, AddedItems),
     CombinedItems = add_items_to_map(NewItems, OldItems),
+
     {reply, {new_items, NewItems}, CombinedItems};
 handle_call(items, _From, Items) ->
+
     {reply, {items, Items}, Items}.
 
 add_items_to_map(Items, Map) ->
