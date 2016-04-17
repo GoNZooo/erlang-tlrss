@@ -31,24 +31,31 @@ init(Filters) ->
                                  {ok, Regex} = re:compile(F, Opts),
                                  Regex
                          end, Filters),
+
     {ok, Compiled}.
 
 handle_call({filter, Items}, _From, Filters) ->
     Filtered = lists:filter(fun(I) -> wanted_item(I, Filters) end, Items),
+
     {reply, {filtered_items, Filtered}, Filters};
 handle_call(filters, _From, Filters) ->
+
     {reply, {filters, Filters}, Filters};
 handle_call({add, {F, Opts}}, _From, Filters) ->
     case F of
         {re_pattern, _, _, _, _} ->
+
             {reply, {added_filter, F}, [F | Filters]};
         Bin when is_binary(Bin) ->
             {ok, Regex} = re:compile(Bin, Opts),
+
             {reply, {added_filter, Regex}, [Regex | Filters]};
         Str when is_list(Str) ->
             {ok, Regex} = re:compile(Str, Opts),
+
             {reply, {added_filter, Regex}, [Regex | Filters]};
         _ ->
+
             {reply, {error, invalid_filter_specification}, Filters}
     end.
 
