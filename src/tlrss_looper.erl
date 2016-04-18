@@ -4,8 +4,6 @@
 
 -include("records.hrl").
 
-%-compile([{parse_transform, lager_transform}]).
-
 -export([start_link/2,
          ensure_slash/1]).
 
@@ -27,9 +25,12 @@ loop(Feed, Sleeptime) ->
     timer:sleep(Sleeptime),
     loop(Feed, Sleeptime).
 
+-type torrent_data() :: {string(), binary()}.
+-spec get_torrent_data([#item{}]) -> [torrent_data()].
 get_torrent_data(Items) ->
     get_torrent_data(Items, []).
 
+-spec get_torrent_data([#item{}], [torrent_data()]) -> [torrent_data()].
 get_torrent_data([], Output) ->
     Output;
 get_torrent_data([I | Is], Output) ->
@@ -41,6 +42,7 @@ get_torrent_data([I | Is], Output) ->
     Data = tlrss_downloader:download_wait(torrent, Url),
     get_torrent_data(Is, [{FilenameString, Data} | Output]).
 
+-spec write_torrents(string(), [{string(), binary()}]) -> ok.
 write_torrents(_, []) ->
     ok;
 write_torrents(DownloadDir, [{Filename, Data} | Ts]) ->
@@ -49,7 +51,7 @@ write_torrents(DownloadDir, [{Filename, Data} | Ts]) ->
     lager:info("Downloading: ~p~n", [Filename]),
     write_torrents(DownloadDir, Ts).
 
-
+-spec ensure_slash(string()) -> string().
 ensure_slash(Dir) ->
     case lists:last(Dir) of
         $/ -> Dir;
