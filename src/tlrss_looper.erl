@@ -4,11 +4,12 @@
 
 -include("records.hrl").
 
--compile([{parse_transform, lager_transform}]).
+%-compile([{parse_transform, lager_transform}]).
 
 -export([start_link/2,
          ensure_slash/1]).
 
+-spec start_link(string(), non_neg_integer()) -> {ok, pid()}.
 start_link(Feed, Sleeptime) ->
     {ok, spawn_link(fun() -> loop(Feed, Sleeptime) end)}.
 

@@ -15,12 +15,15 @@
 
 -behaviour(gen_server).
 
+-spec start_link([string()], non_neg_integer()) -> gen_server:startlink_ret().
 start_link(Feeds, Sleeptime) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Feeds, Sleeptime], []).
 
+-spec feeds() -> [string()].
 feeds() ->
     gen_server:call(?MODULE, feeds).
 
+-spec add(string()) -> ok.
 add(Feed) ->
     gen_server:call(?MODULE, {add, Feed}).
 
@@ -29,9 +32,11 @@ init([Feeds, Sleeptime]) ->
 
     {ok, FeedMap}.
 
+-spec start_feeds([string()], non_neg_integer()) -> #{}.
 start_feeds(Feeds, Sleeptime) ->
     start_feeds(Feeds, Sleeptime, []).
 
+-spec start_feeds([string()], non_neg_integer(), [{string(), pid()}]) -> #{}.
 start_feeds([], Sleeptime, Output) ->
     StateList = [{sleeptime, Sleeptime} | Output],
     maps:from_list(StateList);
@@ -52,8 +57,8 @@ handle_call({remove, Feed}, _From, Feeds) ->
     end.
 
 handle_cast({add, Feed}, #{sleeptime := Sleeptime} = Feeds) ->
-    {ok, pid} = tlrss_looper_supervisor:start_child(Feed, Sleeptime),
-    NewFeeds = Feeds#{Feed => pid},
+    {ok, Pid} = tlrss_looper_supervisor:start_child(Feed, Sleeptime),
+    NewFeeds = Feeds#{Feed => Pid},
 
     {noreply, NewFeeds};
 handle_cast(_Msg, N) ->

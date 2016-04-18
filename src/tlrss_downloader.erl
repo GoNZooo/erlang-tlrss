@@ -22,10 +22,14 @@ start_link(torrent, Url) ->
 
 download_wait(feed, Url) ->
     {ok, Pid} = tlrss_download_supervisor:start_child(feed, Url),
-    get_data(Pid);
+    Data = get_data(Pid),
+    tlrss_download_supervisor:terminate_child(Pid),
+    Data;
 download_wait(torrent, Url) ->
     {ok, Pid} = tlrss_download_supervisor:start_child(torrent, Url),
-    get_data(Pid).
+    Data = get_data(Pid),
+    tlrss_download_supervisor:terminate_child(Pid),
+    Data.
 
 fetch_data(Url) ->
     fetch_data(Url, string).
