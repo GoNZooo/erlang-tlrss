@@ -1,35 +1,45 @@
 -module(tlrss_downloader).
 
--export([get_data/1,
-         download_wait/2]).
-
 -include("records.hrl").
 
--export([start_link/2,
-         init/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         terminate/2,
-         code_change/3]).
+-export([start_download/2,
+         download/2]).
 
--behaviour(gen_server).
-
-start_link(feed, Url) ->
-    gen_server:start_link(?MODULE, [feed, Url], []);
-start_link(torrent, Url) ->
-    gen_server:start_link(?MODULE, [torrent, Url], []).
-
-download_wait(feed, Url) ->
+download(feed, Url) ->
     {ok, Pid} = tlrss_download_supervisor:start_child(feed, Url),
-    Data = get_data(Pid),
-    tlrss_download_supervisor:terminate_child(Pid),
-    Data;
-download_wait(torrent, Url) ->
+    get_data(Pid);
+download(torrent, Url) ->
     {ok, Pid} = tlrss_download_supervisor:start_child(torrent, Url),
-    Data = get_data(Pid),
-    tlrss_download_supervisor:terminate_child(Pid),
-    Data.
+    get_data(Pid).
+
+start_download(feed, Url) ->
+    {ok, spawn_link(fun() -> Data = download_feed(Url),
+                             receive
+                                 {From, get_data} ->
+                                     From ! {ok, Data}
+                             after 5000 ->
+                                     {error, not_claimed}
+                             end
+                    end)};
+start_download(torrent, Url) ->
+    {ok, spawn_link(fun() -> Data = download_torrent(Url),
+                             receive
+                                 {From, get_data} ->
+                                     From ! {ok, Data}
+                             after 5000 ->
+                                     {error, not_claimed}
+                             end
+                    end)}.
+
+get_data(Pid) ->
+    Pid ! {self(), get_data},
+    receive
+        {ok, Data} ->
+            Data
+
+    after 5000 ->
+            {error, not_claimed}
+    end.
 
 fetch_data(Url) ->
     fetch_data(Url, string).
@@ -52,9 +62,6 @@ download_feed(Url) ->
 download_torrent(Url) ->
     fetch_data(Url, binary).
 
-get_data(Pid) ->
-    gen_server:call(Pid, get_data).
-
 entry_to_item({entry, undefined, undefined, undefined,
                ID, undefined, Download, undefined, Category,
                Name, DateUploaded}) ->
@@ -63,24 +70,3 @@ entry_to_item({entry, undefined, undefined, undefined,
           name = Name,
           date_uploaded = DateUploaded,
           category = Category}.
-
-init([feed, Url]) ->
-    {ok, download_feed(Url)};
-init([torrent, Url]) ->
-    {ok, download_torrent(Url)}.
-
-
-handle_call(get_data, _From, Data) ->
-    {reply, Data, Data}.
-
-handle_cast(_Msg, N) ->
-    {noreply, N}.
-
-handle_info(_Info, N) ->
-    {noreply, N}.
-
-terminate(_Reason, _N) ->
-    ok.
-
-code_change(_OldVsn, N, _Extra) ->
-    {ok, N}.

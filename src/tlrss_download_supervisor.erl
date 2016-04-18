@@ -28,7 +28,7 @@ init([]) ->
                  intensity => 10,
                  period => 3600000},
     Children = [#{id => tlrss_downloader,
-                  start => {tlrss_downloader, start_link, []},
+                  start => {tlrss_downloader, start_download, []},
                   restart => transient}],
 
     {ok, {SupFlags, Children}}.

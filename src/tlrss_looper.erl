@@ -15,7 +15,7 @@ loop(Feed, Sleeptime) ->
     {ok, Dir} = application:get_env(tlrss, download_dir),
     DownloadDir = ensure_slash(Dir),
 
-    Items = tlrss_downloader:download_wait(feed, Feed),
+    Items = tlrss_downloader:download(feed, Feed),
     {new_items, NewItems} = tlrss_item_bucket:add(Items),
     {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems),
 
@@ -39,7 +39,7 @@ get_torrent_data([I | Is], Output) ->
     FilenameBinary = lists:last(UrlComponents),
     FilenameString = binary:bin_to_list(FilenameBinary),
 
-    Data = tlrss_downloader:download_wait(torrent, Url),
+    Data = tlrss_downloader:download(torrent, Url),
     get_torrent_data(Is, [{FilenameString, Data} | Output]).
 
 -spec write_torrents(string(), [{string(), binary()}]) -> ok.
