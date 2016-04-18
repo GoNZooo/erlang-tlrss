@@ -47,7 +47,7 @@ write_torrents(_, []) ->
     ok;
 write_torrents(DownloadDir, [{Filename, Data} | Ts]) ->
     DownloadPath = DownloadDir ++ Filename,
-    file:write_file(DownloadPath, Data, [write, binary]),
+    ok = file:write_file(DownloadPath, Data, [write, binary]),
     lager:info("Downloading: ~p~n", [Filename]),
     write_torrents(DownloadDir, Ts).
 

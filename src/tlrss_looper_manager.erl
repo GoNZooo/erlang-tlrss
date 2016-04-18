@@ -49,7 +49,7 @@ handle_call(feeds, _From, Feeds) ->
 handle_call({remove, Feed}, _From, Feeds) ->
     case Feeds of
         #{Feed := Pid} ->
-            tlrss_looper_supervisor:terminate_child(Pid),
+            ok = tlrss_looper_supervisor:terminate_child(Pid),
 
             {reply, {ok, {removed, Feed}}, maps:remove(Feed, Feeds)};
         _ ->
