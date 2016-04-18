@@ -1,5 +1,5 @@
--record(item, {name = <<>>,
-               id = <<>>,
-               download_link = <<>>,
-               date_uploaded = <<>>,
-               category = <<>>}).
+-record(item, {name = <<>> :: binary(),
+               id = <<>> :: binary(),
+               download_link = <<>> :: binary(),
+               date_uploaded = <<>> :: binary(),
+               category = <<>> :: binary()}).
