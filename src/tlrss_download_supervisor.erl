@@ -3,7 +3,7 @@
 -export([start_link/0,
          init/1,
          start_child/2,
-        terminate_child/1]).
+         terminate_child/1]).
 
 -behaviour(supervisor).
 
