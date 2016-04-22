@@ -14,18 +14,23 @@
 -behaviour(gen_server).
 -include("records.hrl").
 
+-spec start_link([{binary(), [atom()]}]) -> gen_server:startlink_ret().
 start_link(Filters) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Filters, []).
 
+-spec filter([#item{}]) -> {filtered_items, [#item{}]}.
 filter(Items) ->
     gen_server:call(?MODULE, {filter, Items}).
 
+-spec filters() -> [re:mp()].
 filters() ->
     gen_server:call(?MODULE, filters).
 
+-spec add({binary(), [atom()]}) -> {added_filter, re:mp()}.
 add(Filter) ->
     gen_server:call(?MODULE, {add, Filter}).
 
+-spec init([{binary(), atom()}]) -> {ok, [re:mp()]}.
 init(Filters) ->
     Compiled = lists:map(fun({F, Opts}) ->
                                  {ok, Regex} = re:compile(F, Opts),
@@ -59,6 +64,7 @@ handle_call({add, {F, Opts}}, _From, Filters) ->
             {reply, {error, invalid_filter_specification}, Filters}
     end.
 
+-spec wanted_item(#item{}, [re:mp()]) -> boolean().
 wanted_item(Item, Filters) ->
     lists:any(fun(Regex) ->
                       case re:run(Item#item.name, Regex) of
