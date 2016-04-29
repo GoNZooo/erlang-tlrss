@@ -25,7 +25,7 @@ terminate_child(Pid) ->
 
 init([]) ->
     SupFlags = #{strategy => simple_one_for_one,
-                 intensity => 10,
+                 intensity => 24,
                  period => 3600000},
     Children = [#{id => tlrss_downloader,
                   start => {tlrss_downloader, start_download, []},

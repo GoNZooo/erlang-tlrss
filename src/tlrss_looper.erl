@@ -7,20 +7,49 @@
 -export([start_link/2,
          ensure_slash/1]).
 
--spec start_link(string(), non_neg_integer()) -> {ok, pid()}.
+-spec start_link(Feed :: string(), Sleeptime :: non_neg_integer()) -> {ok, pid()};
+                ({Feed :: string(), Filters :: [binary()], no_global},
+                 Sleeptime :: non_neg_integer()) -> {ok, pid()}.
+start_link({Feed, Filters, no_global}, Sleeptime) ->
+    Compiled = lists:map(fun({F, Opts}) ->
+                                 {ok, Regex} = re:compile(F, Opts),
+                                 Regex
+                         end, Filters),
+    {ok, spawn_link(fun() -> loop({Feed, Compiled, no_global}, Sleeptime) end)};
 start_link(Feed, Sleeptime) ->
     {ok, spawn_link(fun() -> loop(Feed, Sleeptime) end)}.
 
+loop({Feed, Filters, no_global} = FeedSpec, Sleeptime) ->
+    {ok, Dir} = application:get_env(tlrss, download_dir),
+    DownloadDir = ensure_slash(Dir),
+
+    case tlrss_downloader:download(feed, Feed) of
+        {ok, Items} ->
+            {new_items, NewItems} = tlrss_item_bucket:add(Items),
+            {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems, Filters),
+
+            TorrentData = get_torrent_data(FilteredItems),
+            write_torrents(DownloadDir, TorrentData);
+        {error, Reason} ->
+            lager:error("~p~n", [Reason])
+    end,
+
+    timer:sleep(Sleeptime),
+    loop(FeedSpec, Sleeptime);
 loop(Feed, Sleeptime) ->
     {ok, Dir} = application:get_env(tlrss, download_dir),
     DownloadDir = ensure_slash(Dir),
 
-    Items = tlrss_downloader:download(feed, Feed),
-    {new_items, NewItems} = tlrss_item_bucket:add(Items),
-    {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems),
+    case tlrss_downloader:download(feed, Feed) of
+        {ok, Items} ->
+            {new_items, NewItems} = tlrss_item_bucket:add(Items),
+            {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems),
 
-    TorrentData = get_torrent_data(FilteredItems), 
-    write_torrents(DownloadDir, TorrentData),
+            TorrentData = get_torrent_data(FilteredItems),
+            write_torrents(DownloadDir, TorrentData);
+        {error, Reason} ->
+            lager:error("~p~n", [Reason])
+    end,
 
     timer:sleep(Sleeptime),
     loop(Feed, Sleeptime).

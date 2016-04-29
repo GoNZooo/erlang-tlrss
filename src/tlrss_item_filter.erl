@@ -1,5 +1,6 @@
 -module(tlrss_item_filter).
 -export([filter/1,
+         filter/2,
          filters/0,
          add/1]).
 
@@ -22,6 +23,10 @@ start_link(Filters) ->
 filter(Items) ->
     gen_server:call(?MODULE, {filter, Items}).
 
+-spec filter([#item{}], [re:mp()]) -> {filtered_items, [#item{}]}.
+filter(Items, SpecifiedFilters) ->
+    gen_server:call(?MODULE, {filter, Items, SpecifiedFilters}).
+
 -spec filters() -> [re:mp()].
 filters() ->
     gen_server:call(?MODULE, filters).
@@ -41,6 +46,10 @@ init(Filters) ->
 
 handle_call({filter, Items}, _From, Filters) ->
     Filtered = lists:filter(fun(I) -> wanted_item(I, Filters) end, Items),
+
+    {reply, {filtered_items, Filtered}, Filters};
+handle_call({filter, Items, SpecifiedFilters}, _From, Filters) ->
+    Filtered = lists:filter(fun(I) -> wanted_item(I, SpecifiedFilters) end, Items),
 
     {reply, {filtered_items, Filtered}, Filters};
 handle_call(filters, _From, Filters) ->

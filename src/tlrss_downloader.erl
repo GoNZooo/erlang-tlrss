@@ -3,7 +3,8 @@
 -include("records.hrl").
 
 -export([start_download/2,
-         download/2]).
+         download/2,
+         fetch_data/1]).
 
 -spec download(feed, string()) -> string();
               (torrent, string()) -> binary().
@@ -42,7 +43,7 @@ get_data(Pid) ->
         {ok, Data} ->
             Data
 
-    after 5000 ->
+    after 30000 ->
             {error, not_claimed}
     end.
 
@@ -53,24 +54,45 @@ fetch_data(Url) ->
 -spec fetch_data(string(), string) -> string();
                 (string(), binary) -> binary().
 fetch_data(Url, string) ->
-    {ok, {_, _, Data}} = httpc:request(Url),
-    Data;
+    case httpc:request(Url) of
+        {ok, {_, _, Data}} -> {ok, Data};
+        {error, Reason} -> {error, Reason}
+    end;
 fetch_data(Url, binary) ->
-    {ok, {_, _, Data}} = httpc:request(get,
-                                       {Url, []},
-                                       [],
-                                       [{body_format, binary}]),
-    Data.
+    case httpc:request(get,
+                       {Url, []},
+                       [],
+                       [{body_format, binary}]) of
+        {ok, {_, _, Data}} -> {ok, Data};
+        {error, Reason} -> {error, Reason}
+    end.
+
+-spec try_parse_rss(Data :: string()) -> Result :: {ok, [#item{}]}
+                                                 | {error, term()}.
+try_parse_rss(Data) ->
+    try feeder:stream(Data, []) of
+        {ok, {_, Entries}, _Rest} ->
+            {ok, lists:map(fun entry_to_item/1, Entries)};
+        {fatal_error, _, _, _, _} ->
+            {error, "Invalid RSS data / Timeout"}
+    catch
+        error:function_clause ->
+            {error, "Invalid RSS data / Timeout"}
+    end.
 
 -spec download_feed(string()) -> [#item{}].
 download_feed(Url) ->
-    Data = fetch_data(Url),
-    {ok, {_, Entries}, _Rest} = feeder:stream(Data, []),
-    lists:map(fun entry_to_item/1, Entries).
+    case fetch_data(Url) of
+        {ok, Data} -> 
+            try_parse_rss(Data);
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 -spec download_torrent(string()) -> binary().
 download_torrent(Url) ->
-    fetch_data(Url, binary).
+    {ok, Data} = fetch_data(Url, binary),
+    Data.
 
 -type rss_entry() :: {entry, undefined, undefined, undefined,
                       binary(), undefined, binary(), undefined,
