@@ -19,11 +19,11 @@
 start_link(Filters) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Filters, []).
 
--spec filter([#item{}]) -> {filtered_items, [#item{}]}.
+-spec filter([#item{}]) -> {ok, [#item{}]}.
 filter(Items) ->
     gen_server:call(?MODULE, {filter, Items}).
 
--spec filter([#item{}], [re:mp()]) -> {filtered_items, [#item{}]}.
+-spec filter([#item{}], [re:mp()]) -> {ok, [#item{}]}.
 filter(Items, SpecifiedFilters) ->
     gen_server:call(?MODULE, {filter, Items, SpecifiedFilters}).
 
@@ -47,11 +47,11 @@ init(Filters) ->
 handle_call({filter, Items}, _From, Filters) ->
     Filtered = lists:filter(fun(I) -> wanted_item(I, Filters) end, Items),
 
-    {reply, {filtered_items, Filtered}, Filters};
+    {reply, {ok, Filtered}, Filters};
 handle_call({filter, Items, SpecifiedFilters}, _From, Filters) ->
     Filtered = lists:filter(fun(I) -> wanted_item(I, SpecifiedFilters) end, Items),
 
-    {reply, {filtered_items, Filtered}, Filters};
+    {reply, {ok, Filtered}, Filters};
 handle_call(filters, _From, Filters) ->
 
     {reply, {filters, Filters}, Filters};

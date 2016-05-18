@@ -15,6 +15,7 @@
     ssl,
     lager,
     feeder,
+    erlando,
     jsx
    ]},
   {env,[]},

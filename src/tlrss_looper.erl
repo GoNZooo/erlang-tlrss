@@ -25,16 +25,19 @@ loop({Feed, Filters, no_global} = FeedSpec, Sleeptime) ->
     {ok, Dir} = application:get_env(tlrss, download_dir),
     DownloadDir = ensure_slash(Dir),
 
-    case tlrss_downloader:download(feed, Feed) of
-        {ok, Items} ->
-            {new_items, NewItems} = tlrss_item_bucket:add(Items),
-            {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems, Filters),
-
-            TorrentData = get_torrent_data(FilteredItems),
-            write_torrents(DownloadDir, TorrentData);
+    case do([error_m ||
+                Items <- tlrss_downloader:download(feed, Feed),
+                NewItems <- tlrss_item_bucket:add(Items),
+                FilteredItems <- tlrss_item_filter:filter(NewItems, Filters),
+                TorrentData = get_torrent_data(FilteredItems),
+                write_torrents(DownloadDir, TorrentData)
+            ]) of
         {error, Reason} ->
-            lager:error("~p~n", [Reason])
+            lager:error(Reason);
+        ok ->
+            ok
     end,
+
 
     timer:sleep(Sleeptime),
     loop(FeedSpec, Sleeptime);
@@ -42,15 +45,17 @@ loop(Feed, Sleeptime) ->
     {ok, Dir} = application:get_env(tlrss, download_dir),
     DownloadDir = ensure_slash(Dir),
 
-    case tlrss_downloader:download(feed, Feed) of
-        {ok, Items} ->
-            {new_items, NewItems} = tlrss_item_bucket:add(Items),
-            {filtered_items, FilteredItems} = tlrss_item_filter:filter(NewItems),
-
-            TorrentData = get_torrent_data(FilteredItems),
-            write_torrents(DownloadDir, TorrentData);
+    case do([error_m ||
+                Items <- tlrss_downloader:download(feed, Feed),
+                NewItems <- tlrss_item_bucket:add(Items),
+                FilteredItems <- tlrss_item_filter:filter(NewItems),
+                TorrentData = get_torrent_data(FilteredItems),
+                write_torrents(DownloadDir, TorrentData)
+            ]) of
         {error, Reason} ->
-            lager:error("~p~n", [Reason])
+            lager:error(Reason);
+        ok ->
+            ok
     end,
 
     timer:sleep(Sleeptime),

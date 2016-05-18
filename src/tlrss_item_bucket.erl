@@ -17,7 +17,7 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
--spec add([#item{}]) -> {new_items, [#item{}]}.
+-spec add([#item{}]) -> {ok, [#item{}]}.
 add(Items) ->
     gen_server:call(?MODULE, {add, Items}).
 
@@ -44,7 +44,7 @@ handle_call({add, AddedItems}, _From, OldItems) ->
     NewItems = lists:filter(fun(I) -> item_is_new(I, OldItems) end, AddedItems),
     CombinedItems = add_items_to_map(NewItems, OldItems),
 
-    {reply, {new_items, NewItems}, CombinedItems};
+    {reply, {ok, NewItems}, CombinedItems};
 handle_call(items, _From, Items) ->
 
     {reply, {items, Items}, Items}.

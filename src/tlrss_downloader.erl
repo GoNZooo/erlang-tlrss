@@ -1,10 +1,14 @@
 -module(tlrss_downloader).
 
+-compile({parse_transform, do}).
+
 -include("records.hrl").
 
 -export([start_download/2,
          download/2,
-         fetch_data/1]).
+         fetch_data/1,
+         try_parse_rss/1,
+         download_feed/1]).
 
 -spec download(feed, string()) -> string();
               (torrent, string()) -> binary().
@@ -18,34 +22,54 @@ download(torrent, Url) ->
 -spec start_download(feed, string()) -> {ok, pid()};
                     (torrent, string()) -> {ok, pid()}.
 start_download(feed, Url) ->
-    {ok, spawn_link(fun() -> Data = download_feed(Url),
-                             receive
-                                 {From, get_data} ->
-                                     From ! {ok, Data}
-                             after 5000 ->
-                                     {error, not_claimed}
-                             end
-                    end)};
+    {ok, spawn_link(
+           fun() -> do([error_m ||
+                           Data <- download_feed(Url),
+                           wait_for_fetch(Data)])
+           end
+          )};
 start_download(torrent, Url) ->
-    {ok, spawn_link(fun() -> Data = download_torrent(Url),
-                             receive
-                                 {From, get_data} ->
-                                     From ! {ok, Data}
-                             after 5000 ->
-                                     {error, not_claimed}
-                             end
-                    end)}.
+    {ok, spawn_link(
+           fun() -> do([error_m ||
+                           Data <- download_torrent(Url),
+                           wait_for_fetch(Data)])
+           end
+          )}.
+
+wait_for_fetch(Data) ->
+    receive
+        {From, get_data} ->
+            From ! {ok, Data}
+    after 5000 ->
+            {error, "Data not claimed / timeout"}
+    end.
+
+-spec download_feed(string()) -> [#item{}].
+download_feed(Url) ->
+    do([error_m ||
+           Data <- fetch_data(Url),
+           RSSEntries <- try_parse_rss(Data),
+           return(RSSEntries)
+       ]).
+
+-spec download_torrent(string()) -> binary().
+download_torrent(Url) ->
+    do([error_m ||
+           Data <- fetch_data(Url, binary),
+           return(Data)
+       ]).
 
 -spec get_data(pid()) -> binary() | string() | {error, not_claimed}.
 get_data(Pid) ->
     Pid ! {self(), get_data},
     receive
         {ok, Data} ->
-            Data
+            error_m:return(Data)
 
     after 30000 ->
-            {error, "Data not claimed / timeout"}
+            error_m:fail("Data not claimed / timeout")
     end.
+
 
 -spec fetch_data(string()) -> string().
 fetch_data(Url) ->
@@ -54,45 +78,37 @@ fetch_data(Url) ->
 -spec fetch_data(string(), string) -> string();
                 (string(), binary) -> binary().
 fetch_data(Url, string) ->
-    case httpc:request(Url) of
-        {ok, {_, _, Data}} -> {ok, Data};
-        {error, Reason} -> {error, Reason}
-    end;
+    do([error_m ||
+           Result <- httpc:request(Url),
+           {_, _, Data} = Result,
+           return(Data)
+       ]);
 fetch_data(Url, binary) ->
-    case httpc:request(get,
-                       {Url, []},
-                       [],
-                       [{body_format, binary}]) of
-        {ok, {_, _, Data}} -> {ok, Data};
-        {error, Reason} -> {error, Reason}
-    end.
+    do([error_m ||
+           {_, _, Data} <- httpc:request(get,
+                                         {Url, []},
+                                         [],
+                                         [{body_format, binary}]),
+           return(Data)
+       ]).
 
--spec try_parse_rss(Data :: string()) -> Result :: {ok, [#item{}]}
-                                                 | {error, term()}.
+-spec try_parse_rss(Data :: string()) -> Result :: {ok, [#item{}]} | {error, term()}.
 try_parse_rss(Data) ->
-    try feeder:stream(Data, []) of
-        {ok, {_, Entries}, _Rest} ->
-            {ok, lists:map(fun entry_to_item/1, Entries)};
-        {fatal_error, _, _, _, _} ->
-            {error, "Invalid RSS data / Timeout"}
-    catch
-        error:function_clause ->
-            {error, "Invalid RSS data / Timeout"}
-    end.
-
--spec download_feed(string()) -> [#item{}].
-download_feed(Url) ->
-    case fetch_data(Url) of
-        {ok, Data} -> 
-            try_parse_rss(Data);
-        {error, Reason} ->
-            {error, Reason}
-    end.
-
--spec download_torrent(string()) -> binary().
-download_torrent(Url) ->
-    {ok, Data} = fetch_data(Url, binary),
-    Data.
+    do([error_m ||
+           RSSEntries <- do([error_m ||
+                                try feeder:stream(Data, []) of
+                                    {fatal_error, _, _, _, _} ->
+                                        fail("Parsing error, invalid data");
+                                    {ok, {_, Entries}, _} ->
+                                        return(Entries)
+                                catch
+                                    error:_ ->
+                                        fail("Invalid RSS data / Timeout")
+                                end
+                            ]),
+           Items = lists:map(fun entry_to_item/1, RSSEntries),
+           return(Items)
+       ]).
 
 -type rss_entry() :: {entry, _, _, _, ID :: binary(), _,
                       DownloadLink :: binary(), _, Category :: binary(),
