@@ -44,7 +44,7 @@ get_data(Pid) ->
             Data
 
     after 30000 ->
-            {error, not_claimed}
+            {error, "Data not claimed / timeout"}
     end.
 
 -spec fetch_data(string()) -> string().
@@ -94,9 +94,9 @@ download_torrent(Url) ->
     {ok, Data} = fetch_data(Url, binary),
     Data.
 
--type rss_entry() :: {entry, undefined, undefined, undefined,
-                      binary(), undefined, binary(), undefined,
-                      binary(), binary(), binary()}.
+-type rss_entry() :: {entry, _, _, _, ID :: binary(), _,
+                      DownloadLink :: binary(), _, Category :: binary(),
+                      Name :: binary(), DateUploaded :: binary()}.
 -spec entry_to_item(rss_entry()) -> #item{}.
 entry_to_item({entry, undefined, undefined, undefined,
                ID, undefined, Download, undefined, Category,
