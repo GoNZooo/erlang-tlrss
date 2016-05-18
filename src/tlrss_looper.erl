@@ -1,5 +1,7 @@
 -module(tlrss_looper).
 
+-compile({parse_transform, do}).
+
 -export([]).
 
 -include("records.hrl").
@@ -76,9 +78,11 @@ write_torrents(_, []) ->
     ok;
 write_torrents(DownloadDir, [{Filename, Data} | Ts]) ->
     DownloadPath = DownloadDir ++ Filename,
-    ok = file:write_file(DownloadPath, Data, [write, binary]),
-    lager:info("Downloading: ~p~n", [Filename]),
-    write_torrents(DownloadDir, Ts).
+    do([error_m ||
+           file:write_file(DownloadPath, Data, [write, binary]),
+           lager:info("Downloading: ~p~n", [Filename]),
+           write_torrents(DownloadDir, Ts)
+       ]).
 
 -spec ensure_slash(string()) -> string().
 ensure_slash(Dir) ->
