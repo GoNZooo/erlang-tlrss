@@ -21,6 +21,10 @@ start_link({Feed, Filters, no_global}, Sleeptime) ->
 start_link(Feed, Sleeptime) ->
     {ok, spawn_link(fun() -> loop(Feed, Sleeptime) end)}.
 
+-spec loop({Feed :: string(), Filters :: [re:mp()], no_global},
+           Sleeptime :: pos_integer())
+          -> none();
+          (Feed :: string(), Sleeptime :: pos_integer()) -> none().
 loop({Feed, Filters, no_global} = FeedSpec, Sleeptime) ->
     {ok, Dir} = application:get_env(tlrss, download_dir),
     DownloadDir = ensure_slash(Dir),
