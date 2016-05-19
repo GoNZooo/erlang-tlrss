@@ -33,7 +33,7 @@ loop({Feed, Filters, no_global} = FeedSpec, Sleeptime) ->
                 Items <- tlrss_downloader:download(feed, Feed),
                 NewItems <- tlrss_item_bucket:add(Items),
                 FilteredItems <- tlrss_item_filter:filter(NewItems, Filters),
-                TorrentData = get_torrent_data(FilteredItems),
+                TorrentData <- get_torrent_data(FilteredItems),
                 write_torrents(DownloadDir, TorrentData)
             ]) of
         {error, Reason} ->
@@ -53,7 +53,7 @@ loop(Feed, Sleeptime) ->
                 Items <- tlrss_downloader:download(feed, Feed),
                 NewItems <- tlrss_item_bucket:add(Items),
                 FilteredItems <- tlrss_item_filter:filter(NewItems),
-                TorrentData = get_torrent_data(FilteredItems),
+                TorrentData <- get_torrent_data(FilteredItems),
                 write_torrents(DownloadDir, TorrentData)
             ]) of
         {error, Reason} ->
@@ -65,24 +65,34 @@ loop(Feed, Sleeptime) ->
     timer:sleep(Sleeptime),
     loop(Feed, Sleeptime).
 
--type torrent_data() :: {string(), binary()}.
+-type torrent_data() :: {Filename :: string(), Data :: binary()}.
 -spec get_torrent_data([#item{}]) -> [torrent_data()].
 get_torrent_data(Items) ->
     get_torrent_data(Items, []).
 
 -spec get_torrent_data([#item{}], [torrent_data()]) -> [torrent_data()].
 get_torrent_data([], Output) ->
-    Output;
+    error_m:return(Output);
 get_torrent_data([I | Is], Output) ->
     Url = binary:bin_to_list(I#item.download_link),
     UrlComponents = re:split(Url, "/"),
     FilenameBinary = lists:last(UrlComponents),
     FilenameString = binary:bin_to_list(FilenameBinary),
 
-    Data = tlrss_downloader:download(torrent, Url),
-    get_torrent_data(Is, [{FilenameString, Data} | Output]).
+    case do([error_m ||
+                Data <- tlrss_downloader:download(torrent, Url),
+                Data
+            ]) of
+        {error, Reason} ->
+            lager:error("Failed downloading ~p (~p), retrying in 60 s~n",
+                        [FilenameString, Reason]),
+            timer:sleep(60000),
+            get_torrent_data([I | Is], Output);
+        BinaryData ->
+           get_torrent_data(Is, [{FilenameString, BinaryData} | Output])
+    end.
 
--spec write_torrents(string(), [{string(), binary()}]) -> ok.
+-spec write_torrents(string(), [{string(), binary()}]) -> ok | {error, any()}.
 write_torrents(_, []) ->
     ok;
 write_torrents(DownloadDir, [{Filename, Data} | Ts]) ->
