@@ -7,8 +7,8 @@
 -export([start_download/2,
          download/2]).
 
--spec download(feed, string()) -> string();
-              (torrent, string()) -> binary().
+-spec download(feed, string()) -> types:error_m(string());
+              (torrent, string()) -> types:error_m(binary()).
 download(feed, Url) ->
     {ok, Pid} = tlrss_download_supervisor:start_child(feed, Url),
     get_data(Pid);
@@ -33,6 +33,8 @@ start_download(torrent, Url) ->
            end
           )}.
 
+-spec wait_for_fetch(Data :: string() | binary())
+                    -> types:error_m(string() | binary()).
 wait_for_fetch(Data) ->
     receive
         {From, get_data} ->
@@ -41,7 +43,7 @@ wait_for_fetch(Data) ->
             {error, "Data not claimed / timeout"}
     end.
 
--spec download_feed(string()) -> [#item{}].
+-spec download_feed(string()) -> types:error_m([#item{}]).
 download_feed(Url) ->
     do([error_m ||
            Data <- fetch_data(Url),
@@ -49,14 +51,14 @@ download_feed(Url) ->
            return(RSSEntries)
        ]).
 
--spec download_torrent(string()) -> binary().
+-spec download_torrent(string()) -> types:error_m(binary()).
 download_torrent(Url) ->
     do([error_m ||
            Data <- fetch_data(Url, binary),
            return(Data)
        ]).
 
--spec get_data(pid()) -> binary() | string() | {error, not_claimed}.
+-spec get_data(pid()) -> Data :: types:error_m(binary() | string()).
 get_data(Pid) ->
     Pid ! {self(), get_data},
     receive
@@ -68,12 +70,12 @@ get_data(Pid) ->
     end.
 
 
--spec fetch_data(string()) -> string().
+-spec fetch_data(string()) -> types:error_m(string()).
 fetch_data(Url) ->
     fetch_data(Url, string).
 
--spec fetch_data(string(), string) -> string();
-                (string(), binary) -> binary().
+-spec fetch_data(string(), string) -> types:error_m(string());
+                (string(), binary) -> types:error_m(binary()).
 fetch_data(Url, string) ->
     do([error_m ||
            Result <- httpc:request(Url),
@@ -89,7 +91,7 @@ fetch_data(Url, binary) ->
            return(Data)
        ]).
 
--spec try_parse_rss(Data :: string()) -> Result :: {ok, [#item{}]} | {error, term()}.
+-spec try_parse_rss(Data :: string()) -> Result :: types:error_m(#item{}).
 try_parse_rss(Data) ->
     do([error_m ||
            RSSEntries <- do([error_m ||
@@ -110,6 +112,7 @@ try_parse_rss(Data) ->
 -type rss_entry() :: {entry, _, _, _, ID :: binary(), _,
                       DownloadLink :: binary(), _, Category :: binary(),
                       Name :: binary(), DateUploaded :: binary()}.
+
 -spec entry_to_item(rss_entry()) -> #item{}.
 entry_to_item({entry, undefined, undefined, undefined,
                ID, undefined, Download, undefined, Category,
