@@ -5,10 +5,7 @@
 -include("records.hrl").
 
 -export([start_download/2,
-         download/2,
-         fetch_data/1,
-         try_parse_rss/1,
-         download_feed/1]).
+         download/2]).
 
 -spec download(feed, string()) -> string();
               (torrent, string()) -> binary().
