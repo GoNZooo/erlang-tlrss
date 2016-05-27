@@ -39,8 +39,6 @@ wait_for_fetch(Data) ->
     receive
         {From, get_data} ->
             From ! {ok, Data}
-    after 5000 ->
-            {error, "Data not claimed / timeout"}
     end.
 
 -spec download_feed(string()) -> types:error_m([#item{}]).
@@ -65,8 +63,8 @@ get_data(Pid) ->
         {ok, Data} ->
             error_m:return(Data)
 
-    after 30000 ->
-            error_m:fail("Data not claimed / timeout")
+    after 60000 ->
+            error_m:fail("Torrent not downloaded fast enough")
     end.
 
 
@@ -96,10 +94,10 @@ try_parse_rss(Data) ->
     do([error_m ||
            RSSEntries <- do([error_m ||
                                 try feeder:stream(Data, []) of
-                                    {fatal_error, _, _, _, _} ->
-                                        fail("Parsing error, invalid data");
                                     {ok, {_, Entries}, _} ->
-                                        return(Entries)
+                                        return(Entries);
+                                    _ ->
+                                        fail("Parsing error, invalid data")
                                 catch
                                     error:_ ->
                                         fail("Invalid RSS data / Timeout")
