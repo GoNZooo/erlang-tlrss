@@ -97,7 +97,7 @@ try_parse_rss(Data) ->
                                     {ok, {_, Entries}, _} ->
                                         return(Entries);
                                     _ ->
-                                        fail("Parsing error, invalid data")
+                                        fail("Could not parse RSS feed")
                                 catch
                                     error:_ ->
                                         fail("Invalid RSS data / Timeout")
